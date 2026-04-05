@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Workspace {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+
+  users    User[]
+  channels Channel[]
+
+  @@map("workspaces")
+}
+
+model User {
+  id          String    @id @default(cuid())
+  workspaceId String
+  name        String
+  email       String    @unique
+  avatarColor String    @default("#6366f1")
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@index([workspaceId])
+  @@map("users")
+}
+
+model Channel {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId])
+  @@map("channels")
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  workspaceId String
+  channelId   String
+  authorId    String
+  content     String
+  editedAt    DateTime?
+  createdAt   DateTime  @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+  @@index([workspaceId])
+  @@map("messages")
+}
